@@ -99,7 +99,7 @@ export default function TaskCard({
   return (
     <div 
       className={cn(
-        "relative rounded-xl p-4 bg-crypto-bg-card shadow-md animate-fade-in card-hover cursor-pointer",
+        "relative rounded-xl p-4 bg-card shadow-md animate-fade-in card-hover cursor-pointer",
         completed && "border border-crypto-green/40"
       )}
       onClick={handleCardClick}

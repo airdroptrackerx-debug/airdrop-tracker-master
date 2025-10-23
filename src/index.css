@@ -7,6 +7,38 @@
 
 @layer base {
   :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+
+    --primary: 253 79% 74%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 5% 25%;
+
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 253 79% 74%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
     --background: 240 5.9% 10%;
     --foreground: 0 0% 98%;
 
@@ -19,8 +51,8 @@
     --primary: 253 79% 74%;
     --primary-foreground: 240 10% 3.9%;
 
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
 
     --muted: 240 3.7% 25%;
     --muted-foreground: 240 5% 80%;
@@ -34,8 +66,6 @@
     --border: 240 4% 30%;
     --input: 240 3.7% 15.9%;
     --ring: 253 79% 74%;
-
-    --radius: 0.5rem;
   }
 }
 
@@ -45,7 +75,7 @@
   }
 
   body {
-    @apply bg-crypto-bg-dark text-foreground font-inter;
+    @apply bg-background text-foreground font-inter;
     background-image: radial-gradient(circle at 50% 0%, rgba(155, 135, 245, 0.15), transparent 50%);
     background-attachment: fixed;
   }
@@ -80,5 +110,41 @@
   
   .intensity-green {
     @apply bg-crypto-green;
+  }
+}
+
+@layer utilities {
+  /* Safe area utilities for mobile devices (notch/home indicator) */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 1rem);
+  }
+  
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+  
+  .pl-safe {
+    padding-left: env(safe-area-inset-left, 0);
+  }
+  
+  .pr-safe {
+    padding-right: env(safe-area-inset-right, 0);
+  }
+  
+  /* 3D perspective utilities for animations */
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+  
+  .perspective-2000 {
+    perspective: 2000px;
+  }
+  
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+  
+  .backface-hidden {
+    backface-visibility: hidden;
   }
 }

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Gradient background -->
+  <defs>
+    <linearGradient id="coinGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f97316;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Outer circle (coin) -->
+  <circle cx="32" cy="32" r="30" fill="url(#coinGradient)"/>
+  
+  <!-- Inner circle border -->
+  <circle cx="32" cy="32" r="26" fill="none" stroke="#fbbf24" stroke-width="2"/>
+  
+  <!-- Parachute/Airdrop symbol -->
+  <path d="M32 12 L26 22 L38 22 Z" fill="#fef3c7" stroke="#fbbf24" stroke-width="1.5"/>
+  <line x1="26" y1="22" x2="26" y2="30" stroke="#fef3c7" stroke-width="1.5"/>
+  <line x1="32" y1="22" x2="32" y2="30" stroke="#fef3c7" stroke-width="1.5"/>
+  <line x1="38" y1="22" x2="38" y2="30" stroke="#fef3c7" stroke-width="1.5"/>
+  
+  <!-- Package/Box -->
+  <rect x="26" y="30" width="12" height="10" fill="#fef3c7" stroke="#fbbf24" stroke-width="1.5" rx="1"/>
+  <line x1="32" y1="30" x2="32" y2="40" stroke="#fbbf24" stroke-width="1.5"/>
+  <line x1="26" y1="35" x2="38" y2="35" stroke="#fbbf24" stroke-width="1.5"/>
+  
+  <!-- Dollar/Crypto symbol on box -->
+  <text x="32" y="37" font-family="Arial, sans-serif" font-size="6" font-weight="bold" fill="#f59e0b" text-anchor="middle">$</text>
+  
+  <!-- Coin shine effect -->
+  <circle cx="22" cy="22" r="4" fill="#fef3c7" opacity="0.4"/>
+</svg>

@@ -67,8 +67,8 @@ export default function CompletionStats({ tasks }: CompletionStatsProps) {
   }, [tasks]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 animate-fade-in">
-      <Card className="bg-crypto-bg-card border-muted">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 pt-8 animate-fade-in">
+      <Card className="bg-card border-muted">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-crypto-purple" />
@@ -83,7 +83,7 @@ export default function CompletionStats({ tasks }: CompletionStatsProps) {
         </CardContent>
       </Card>
       
-      <Card className="bg-crypto-bg-card border-muted">
+      <Card className="bg-card border-muted">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2">
             <Clock className="w-4 h-4 text-crypto-purple" />

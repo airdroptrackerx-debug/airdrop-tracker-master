@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 253 79% 74%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 253 79% 74%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 240 5.9% 10%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 18%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 15%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 253 79% 74%;
+    --primary-foreground: 240 10% 3.9%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 25%;
+    --muted-foreground: 240 5% 80%;
+    --accent: 195 92% 48%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 4% 30%;
+    --input: 240 3.7% 15.9%;
+    --ring: 253 79% 74%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  html {
+    @apply h-full;
+  }
+  
+  body {
+    @apply h-full bg-background text-foreground font-inter;
+    background-image: radial-gradient(circle at 50% 0%, rgba(155, 135, 245, 0.15), transparent 50%);
+    background-attachment: fixed;
+  }
+  
+  h1, h2, h3, h4 {
+    @apply font-space-grotesk font-medium;
+  }
+  
+  .card-hover {
+    @apply transition-all duration-200 hover:translate-y-[-4px] hover:shadow-lg hover:shadow-primary/20;
+  }
+  
+  .timer-progress {
+    @apply h-1.5 rounded-full bg-gradient-to-r from-crypto-purple to-accent transition-all duration-300;
+  }
+  
+  .glow {
+    @apply shadow-[0_0_15px_rgba(155,135,245,0.5)];
+  }
+  
+  .intensity-badge {
+    @apply absolute top-2 right-2 w-3 h-3 rounded-full;
+  }
+  
+  .intensity-red {
+    @apply bg-crypto-red;
+  }
+  
+  .intensity-amber {
+    @apply bg-crypto-amber;
+  }
+  
+  .intensity-green {
+    @apply bg-crypto-green;
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "Airdrop Tracker - Crypto Airdrop Task Manager",
+  "short_name": "Airdrop Tracker",
+  "description": "Track unlimited crypto airdrops with powerful task management. Never miss an opportunity!",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#9b87f5",
+  "orientation": "portrait-primary",
+  "categories": ["productivity", "finance", "utilities"],
+  "icons": [
+    {
+      "src": "/favicon2.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "540x720",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ],
+  "scope": "/",
+  "lang": "en-US",
+  "dir": "ltr",
+  "serviceworker": {
+    "src": "/sw.js"
+  },
+  "related_applications": [],
+  "prefer_related_applications": false
+}

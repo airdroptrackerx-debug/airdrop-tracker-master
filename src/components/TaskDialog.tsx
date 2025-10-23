@@ -151,7 +151,7 @@ export default function TaskDialog({ open, onOpenChange, onSave, editingTask }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] bg-crypto-bg-card text-foreground border-muted">
+      <DialogContent className="sm:max-w-[425px] bg-card text-foreground border-muted pb-8 sm:pb-6">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle className="text-xl">
@@ -254,7 +254,7 @@ export default function TaskDialog({ open, onOpenChange, onSave, editingTask }: 
             )}
           </div>
           
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0 pb-2 sm:pb-0">
             <DialogClose asChild>
               <Button variant="outline" type="button">Cancel</Button>
             </DialogClose>

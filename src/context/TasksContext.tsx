@@ -1,8 +1,10 @@
- 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where, serverTimestamp } from 'firebase/firestore';
 import { TaskFormData } from '@/components/TaskDialog';
 import { v4 as uuidv4 } from 'uuid';
 import { useToast } from '@/hooks/use-toast';
+import { db } from '@/lib/firebase';
+import { useAuth } from './AuthContext';
 
 
 interface TasksContextType {
@@ -22,36 +24,56 @@ export function TasksProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [completionRate, setCompletionRate] = useState(0);
   const { toast } = useToast();
+  const { user } = useAuth();
 
+  // Load tasks from Firestore in real-time
   useEffect(() => {
-    const loadTasks = () => {
-      setIsLoading(true);
-      try {
-        const savedTasks = localStorage.getItem('airdropTasks');
-        if (savedTasks) {
-          setTasks(JSON.parse(savedTasks));
-        }
-      } catch (error) {
+    if (!user) {
+      setTasks([]);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+
+    // Create a query for tasks belonging to this user
+    const tasksRef = collection(db, 'tasks');
+    const q = query(tasksRef, where('userId', '==', user.uid));
+
+    // Subscribe to real-time updates
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const loadedTasks: TaskFormData[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          loadedTasks.push({
+            id: doc.id,
+            title: data.title,
+            url: data.url,
+            thumbnailUrl: data.thumbnailUrl,
+            intensity: data.intensity,
+            timerType: data.timerType,
+            customHours: data.customHours,
+            lastCompleted: data.lastCompleted?.toDate(),
+          });
+        });
+        setTasks(loadedTasks);
+        setIsLoading(false);
+      },
+      (error) => {
         console.error('Error loading tasks:', error);
         toast({
           title: 'Error',
           description: 'Failed to load your tasks',
           variant: 'destructive',
         });
-      } finally {
         setIsLoading(false);
       }
-    };
+    );
 
-    loadTasks();
-  }, []);
-
-  // Save tasks to localStorage as fallback when not logged in
-  useEffect(() => {
-    if (!isLoading) {
-      localStorage.setItem('airdropTasks', JSON.stringify(tasks));
-    }
-  }, [tasks, isLoading]);
+    return () => unsubscribe();
+  }, [user, toast]);
 
   // Calculate completion rate whenever tasks change
   useEffect(() => {
@@ -108,51 +130,100 @@ export function TasksProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(intervalId);
   }, [tasks]);
 
-  const addTask = (task: TaskFormData) => {
-    const newTask = {
-      ...task,
-      id: uuidv4(),
-    };
+  const addTask = async (task: TaskFormData) => {
+    if (!user) {
+      toast({
+        title: 'Error',
+        description: 'You must be logged in to add tasks',
+        variant: 'destructive',
+      });
+      return;
+    }
 
-    setTasks(prev => [...prev, newTask]);
+    try {
+      const tasksRef = collection(db, 'tasks');
+      await addDoc(tasksRef, {
+        ...task,
+        userId: user.uid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      toast({
+        title: 'Success',
+        description: 'Task added successfully!',
+      });
+    } catch (error) {
+      console.error('Error adding task:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to add task',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const updateTask = (updatedTask: TaskFormData) => {
-    if (!updatedTask.id) return;
+  const updateTask = async (updatedTask: TaskFormData) => {
+    if (!updatedTask.id || !user) return;
     
-    setTasks(tasks.map(task => 
-      task.id === updatedTask.id ? updatedTask : task
-    ));
+    try {
+      const taskRef = doc(db, 'tasks', updatedTask.id);
+      await updateDoc(taskRef, {
+        title: updatedTask.title,
+        url: updatedTask.url,
+        thumbnailUrl: updatedTask.thumbnailUrl,
+        intensity: updatedTask.intensity,
+        timerType: updatedTask.timerType,
+        customHours: updatedTask.customHours,
+        updatedAt: serverTimestamp(),
+      });
+
+      toast({
+        title: 'Success',
+        description: 'Task updated successfully!',
+      });
+    } catch (error) {
+      console.error('Error updating task:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update task',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const deleteTask = (id: string) => {
-    setTasks(tasks.filter(task => task.id !== id));
+  const deleteTask = async (id: string) => {
+    if (!user) return;
+
+    try {
+      const taskRef = doc(db, 'tasks', id);
+      await deleteDoc(taskRef);
+
+      toast({
+        title: 'Success',
+        description: 'Task deleted successfully!',
+      });
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete task',
+        variant: 'destructive',
+      });
+    }
   };
 
   const completeTask = async (id: string, completed: boolean) => {
+    if (!user) return;
+
     try {
-      const lastCompletedValue = completed ? new Date() : undefined;
+      const taskRef = doc(db, 'tasks', id);
+      const lastCompletedValue = completed ? serverTimestamp() : null;
       
-      if (user) {
-        // With our stubbed Supabase client, just call update and forget
-        await supabase.from('tasks').update();
-      }
-      
-      // Update local state
-      const updatedTasks = tasks.map(task => {
-        if (task.id === id) {
-          return {
-            ...task,
-            lastCompleted: lastCompletedValue
-          };
-        }
-        return task;
+      await updateDoc(taskRef, {
+        lastCompleted: lastCompletedValue,
+        updatedAt: serverTimestamp(),
       });
-      
-      setTasks(updatedTasks);
-      
-      // Explicitly save to localStorage
-      localStorage.setItem('airdropTasks', JSON.stringify(updatedTasks));
     } catch (error) {
       console.error('Error completing task:', error);
       toast({
