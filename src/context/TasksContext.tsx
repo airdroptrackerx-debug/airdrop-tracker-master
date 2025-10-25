@@ -1,11 +1,28 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where, serverTimestamp } from 'firebase/firestore';
-import { TaskFormData } from '@/components/TaskDialog';
-import { v4 as uuidv4 } from 'uuid';
-import { useToast } from '@/hooks/use-toast';
-import { db } from '@/lib/firebase';
-import { useAuth } from './AuthContext';
-
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  query,
+  where,
+  serverTimestamp,
+} from "firebase/firestore";
+import { TaskFormData } from "@/components/TaskDialog";
+import { v4 as uuidv4 } from "uuid";
+import { useToast } from "@/hooks/use-toast";
+import { db } from "@/lib/firebase";
+import { useAuth } from "./AuthContext";
+import { getErrorMessage } from "@/utils/errorMessages";
+import { validateTaskUrl, getFaviconUrl } from "@/utils/urlValidation";
 
 interface TasksContextType {
   tasks: TaskFormData[];
@@ -37,8 +54,8 @@ export function TasksProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
 
     // Create a query for tasks belonging to this user
-    const tasksRef = collection(db, 'tasks');
-    const q = query(tasksRef, where('userId', '==', user.uid));
+    const tasksRef = collection(db, "tasks");
+    const q = query(tasksRef, where("userId", "==", user.uid));
 
     // Subscribe to real-time updates
     const unsubscribe = onSnapshot(
@@ -47,14 +64,19 @@ export function TasksProvider({ children }: { children: ReactNode }) {
         const loadedTasks: TaskFormData[] = [];
         snapshot.forEach((doc) => {
           const data = doc.data();
+
+          // Validate and sanitize URL - prevents app crashes from bad data
+          const safeUrl = validateTaskUrl(data.url);
+          const safeThumbnail = data.thumbnailUrl || getFaviconUrl(safeUrl);
+
           loadedTasks.push({
             id: doc.id,
-            title: data.title,
-            url: data.url,
-            thumbnailUrl: data.thumbnailUrl,
-            intensity: data.intensity,
-            timerType: data.timerType,
-            customHours: data.customHours,
+            title: data.title || "Untitled Task",
+            url: safeUrl,
+            thumbnailUrl: safeThumbnail,
+            intensity: data.intensity || "medium",
+            timerType: data.timerType || "daily",
+            customHours: data.customHours || 0,
             lastCompleted: data.lastCompleted?.toDate(),
           });
         });
@@ -62,11 +84,11 @@ export function TasksProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
       },
       (error) => {
-        console.error('Error loading tasks:', error);
+        console.error("Error loading tasks:", error);
         toast({
-          title: 'Error',
-          description: 'Failed to load your tasks',
-          variant: 'destructive',
+          title: "Error",
+          description: "Failed to load your tasks",
+          variant: "destructive",
         });
         setIsLoading(false);
       }
@@ -84,12 +106,14 @@ export function TasksProvider({ children }: { children: ReactNode }) {
 
     const now = Date.now();
     const oneDayAgo = now - 24 * 60 * 60 * 1000;
-    
-    const completedCount = tasks.filter(task => {
-      const lastCompleted = task.lastCompleted ? new Date(task.lastCompleted).getTime() : null;
+
+    const completedCount = tasks.filter((task) => {
+      const lastCompleted = task.lastCompleted
+        ? new Date(task.lastCompleted).getTime()
+        : null;
       return lastCompleted && lastCompleted > oneDayAgo;
     }).length;
-    
+
     setCompletionRate(completedCount / tasks.length);
   }, [tasks]);
 
@@ -97,35 +121,35 @@ export function TasksProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const checkExpiredTimers = () => {
       const now = Date.now();
-      
-      const updatedTasks = tasks.map(task => {
+
+      const updatedTasks = tasks.map((task) => {
         if (!task.lastCompleted) return task;
-        
+
         const lastCompletedTime = new Date(task.lastCompleted).getTime();
         let timerDuration = 24 * 60 * 60 * 1000; // Default 24 hours
-        
+
         // Calculate timer duration based on timerType
-        if (task.timerType === 'custom' && task.customHours) {
+        if (task.timerType === "custom" && task.customHours) {
           timerDuration = task.customHours * 60 * 60 * 1000;
         } else if (task.timerType) {
-          const hours = parseInt(task.timerType.replace('h', ''));
+          const hours = parseInt(task.timerType.replace("h", ""));
           timerDuration = hours * 60 * 60 * 1000;
         }
-        
+
         // If timer has expired, reset lastCompleted
         if (now >= lastCompletedTime + timerDuration) {
           return { ...task, lastCompleted: undefined };
         }
-        
+
         return task;
       });
-      
+
       // Only update if we have changes
       if (JSON.stringify(updatedTasks) !== JSON.stringify(tasks)) {
         setTasks(updatedTasks);
       }
     };
-    
+
     const intervalId = setInterval(checkExpiredTimers, 60000); // Check every minute
     return () => clearInterval(intervalId);
   }, [tasks]);
@@ -133,45 +157,55 @@ export function TasksProvider({ children }: { children: ReactNode }) {
   const addTask = async (task: TaskFormData) => {
     if (!user) {
       toast({
-        title: 'Error',
-        description: 'You must be logged in to add tasks',
-        variant: 'destructive',
+        title: "Error",
+        description: "You must be logged in to add tasks",
+        variant: "destructive",
       });
       return;
     }
 
     try {
-      const tasksRef = collection(db, 'tasks');
+      // Validate URL before saving
+      const safeUrl = validateTaskUrl(task.url);
+      const safeThumbnail = task.thumbnailUrl || getFaviconUrl(safeUrl);
+
+      const tasksRef = collection(db, "tasks");
       await addDoc(tasksRef, {
         ...task,
+        url: safeUrl,
+        thumbnailUrl: safeThumbnail,
         userId: user.uid,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
 
       toast({
-        title: 'Success',
-        description: 'Task added successfully!',
+        title: "Success",
+        description: "Task added successfully!",
       });
     } catch (error) {
-      console.error('Error adding task:', error);
+      console.error("Error adding task:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to add task',
-        variant: 'destructive',
+        title: "Error",
+        description: getErrorMessage(error),
+        variant: "destructive",
       });
     }
   };
 
   const updateTask = async (updatedTask: TaskFormData) => {
     if (!updatedTask.id || !user) return;
-    
+
     try {
-      const taskRef = doc(db, 'tasks', updatedTask.id);
+      // Validate URL before updating
+      const safeUrl = validateTaskUrl(updatedTask.url);
+      const safeThumbnail = updatedTask.thumbnailUrl || getFaviconUrl(safeUrl);
+
+      const taskRef = doc(db, "tasks", updatedTask.id);
       await updateDoc(taskRef, {
         title: updatedTask.title,
-        url: updatedTask.url,
-        thumbnailUrl: updatedTask.thumbnailUrl,
+        url: safeUrl,
+        thumbnailUrl: safeThumbnail,
         intensity: updatedTask.intensity,
         timerType: updatedTask.timerType,
         customHours: updatedTask.customHours,
@@ -179,15 +213,15 @@ export function TasksProvider({ children }: { children: ReactNode }) {
       });
 
       toast({
-        title: 'Success',
-        description: 'Task updated successfully!',
+        title: "Success",
+        description: "Task updated successfully!",
       });
     } catch (error) {
-      console.error('Error updating task:', error);
+      console.error("Error updating task:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to update task',
-        variant: 'destructive',
+        title: "Error",
+        description: getErrorMessage(error),
+        variant: "destructive",
       });
     }
   };
@@ -196,19 +230,19 @@ export function TasksProvider({ children }: { children: ReactNode }) {
     if (!user) return;
 
     try {
-      const taskRef = doc(db, 'tasks', id);
+      const taskRef = doc(db, "tasks", id);
       await deleteDoc(taskRef);
 
       toast({
-        title: 'Success',
-        description: 'Task deleted successfully!',
+        title: "Success",
+        description: "Task deleted successfully!",
       });
     } catch (error) {
-      console.error('Error deleting task:', error);
+      console.error("Error deleting task:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to delete task',
-        variant: 'destructive',
+        title: "Error",
+        description: getErrorMessage(error),
+        variant: "destructive",
       });
     }
   };
@@ -217,33 +251,35 @@ export function TasksProvider({ children }: { children: ReactNode }) {
     if (!user) return;
 
     try {
-      const taskRef = doc(db, 'tasks', id);
+      const taskRef = doc(db, "tasks", id);
       const lastCompletedValue = completed ? serverTimestamp() : null;
-      
+
       await updateDoc(taskRef, {
         lastCompleted: lastCompletedValue,
         updatedAt: serverTimestamp(),
       });
     } catch (error) {
-      console.error('Error completing task:', error);
+      console.error("Error completing task:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to update task status',
-        variant: 'destructive',
+        title: "Error",
+        description: getErrorMessage(error),
+        variant: "destructive",
       });
     }
   };
 
   return (
-    <TasksContext.Provider value={{
-      tasks,
-      isLoading,
-      addTask,
-      updateTask,
-      deleteTask,
-      completeTask,
-      completionRate
-    }}>
+    <TasksContext.Provider
+      value={{
+        tasks,
+        isLoading,
+        addTask,
+        updateTask,
+        deleteTask,
+        completeTask,
+        completionRate,
+      }}
+    >
       {children}
     </TasksContext.Provider>
   );
@@ -251,10 +287,10 @@ export function TasksProvider({ children }: { children: ReactNode }) {
 
 export function useTasks() {
   const context = useContext(TasksContext);
-  
+
   if (context === undefined) {
-    throw new Error('useTasks must be used within a TasksProvider');
+    throw new Error("useTasks must be used within a TasksProvider");
   }
-  
+
   return context;
 }

@@ -1,27 +1,45 @@
+import { useState, useEffect } from "react";
+import { useTasks } from "@/context/TasksContext";
+import { checkAndStoreLevelUp } from "@/utils/levelUpDetection";
+import { useNavigate } from "react-router-dom";
 
-import { useState, useEffect } from 'react';
-import { useTasks } from '@/context/TasksContext';
-import { checkAndStoreLevelUp } from '@/utils/levelUpDetection';
-import { useNavigate } from 'react-router-dom';
+import TaskCard from "@/components/TaskCard";
+import TaskDialog, { TaskFormData } from "@/components/TaskDialog";
+import { TaskSearch } from "@/components/TaskSearch";
+import { TaskCardSkeleton } from "@/components/TaskCardSkeleton";
+import { EnhancedEmptyState } from "@/components/EnhancedEmptyState";
 
-import TaskCard from '@/components/TaskCard';
-import TaskDialog, { TaskFormData } from '@/components/TaskDialog';
-import { TaskSearch } from '@/components/TaskSearch';
+import CompletionStats from "@/components/CompletionStats";
+import MotivationalMessage from "@/components/MotivationalMessage";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Moon, Sun, Plus, Rocket, Sparkles, ArrowRight } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
-import CompletionStats from '@/components/CompletionStats';
-import MotivationalMessage from '@/components/MotivationalMessage';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Moon, Sun, Plus, Rocket, Sparkles, ArrowRight } from 'lucide-react';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-
-import { useTheme } from '@/components/ThemeProvider';
-import { WelcomeBanner } from '@/components/WelcomeBanner';
+import { useTheme } from "@/components/ThemeProvider";
+import { WelcomeBanner } from "@/components/WelcomeBanner";
 
 function TaskGrid() {
-  const { tasks, isLoading, addTask, updateTask, deleteTask, completeTask, completionRate } = useTasks();
+  const {
+    tasks,
+    isLoading,
+    addTask,
+    updateTask,
+    deleteTask,
+    completeTask,
+    completionRate,
+  } = useTasks();
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
@@ -33,7 +51,9 @@ function TaskGrid() {
     if (!isLoading && tasks.length > 0) {
       const result = checkAndStoreLevelUp(tasks.length);
       if (result.leveledUp) {
-        console.log(`🎉 Level up detected: ${result.previousLevel} → ${result.newLevel}`);
+        console.log(
+          `🎉 Level up detected: ${result.previousLevel} → ${result.newLevel}`
+        );
       }
     }
   }, [tasks.length, isLoading]);
@@ -43,9 +63,8 @@ function TaskGrid() {
     setDialogOpen(true);
   };
 
-
   const handleEditTask = (id: string) => {
-    const task = tasks.find(t => t.id === id);
+    const task = tasks.find((t) => t.id === id);
     if (task) {
       setEditingTask(task);
       setDialogOpen(true);
@@ -80,81 +99,43 @@ function TaskGrid() {
   }
 
   // Filter tasks based on search query
-  const filteredTasks = tasks.filter(task =>
+  const filteredTasks = tasks.filter((task) =>
     task.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const showNoTasksState = tasks.length === 0;
+  const showNoTasksState = !isLoading && tasks.length === 0;
 
   return (
     <div>
       <CompletionStats tasks={tasks} />
-      
-      {tasks.length > 0 && <MotivationalMessage completionRate={completionRate} />}
-      
-      {/* Search Bar - shows only when user has tasks */}
+
       {tasks.length > 0 && (
-        <TaskSearch onSearch={setSearchQuery} />
+        <MotivationalMessage completionRate={completionRate} />
       )}
-      
+
+      {/* Search Bar - shows only when user has tasks */}
+      {tasks.length > 0 && <TaskSearch onSearch={setSearchQuery} />}
+
       {showNoTasksState && (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="text-5xl mb-4">👋</div>
-          <h2 className="text-2xl font-semibold mb-2">No tasks yet</h2>
-          <p className="text-muted-foreground mb-6 max-w-md">
-            Add your first crypto airdrop task to start tracking and get reminders.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 mb-8">
-            <Button onClick={handleOpenAddDialog} size="lg">
-              <Plus className="mr-2 h-5 w-5" />
-              Add Your First Task
-            </Button>
-            <Button 
-              onClick={() => navigate('/explorer')} 
-              size="lg" 
-              variant="outline"
-              className="border-primary/20"
-            >
-              <Rocket className="mr-2 h-5 w-5" />
-              Explore Airdrops
-            </Button>
-          </div>
-          
-          {/* Info cards for new users */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mt-4">
-            <Card className="p-4 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-              <div className="flex items-start gap-3">
-                <Sparkles className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                <div className="text-left">
-                  <h3 className="font-semibold mb-1">Create Custom Tasks</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Track any airdrop with custom timers and deadlines
-                  </p>
-                </div>
-              </div>
-            </Card>
-            <Card className="p-4 bg-gradient-to-br from-accent/5 to-accent/10 border-accent/20">
-              <div className="flex items-start gap-3">
-                <Rocket className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
-                <div className="text-left">
-                  <h3 className="font-semibold mb-1">Discover Verified Airdrops</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Browse curated opportunities in our Explorer
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </div>
+        <EnhancedEmptyState onAddTask={handleOpenAddDialog} />
+      )}
+
+      {/* Loading Skeletons */}
+      {isLoading && (
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mt-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <TaskCardSkeleton key={i} />
+          ))}
         </div>
       )}
-      
 
-      
-      {tasks.length > 0 && (
+      {!isLoading && tasks.length > 0 && (
         <>
           {filteredTasks.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">No tasks match your search.</p>
+              <p className="text-muted-foreground">
+                No tasks match your search.
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mt-6">
@@ -176,10 +157,12 @@ function TaskGrid() {
               ))}
             </div>
           )}
-          
+
           {/* Explorer Discovery Card */}
-          <Card className="mt-8 overflow-hidden bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10 border-primary/20 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group"
-                onClick={() => navigate('/explorer')}>
+          <Card
+            className="mt-8 overflow-hidden bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10 border-primary/20 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group"
+            onClick={() => navigate("/explorer")}
+          >
             <div className="p-6 sm:p-8">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-start gap-4 text-center sm:text-left">
@@ -188,20 +171,23 @@ function TaskGrid() {
                   </div>
                   <div>
                     <div className="flex items-center gap-2 justify-center sm:justify-start mb-2">
-                      <h3 className="text-xl font-bold">Discover New Airdrops</h3>
+                      <h3 className="text-xl font-bold">
+                        Discover New Airdrops
+                      </h3>
                       <Sparkles className="h-5 w-5 text-primary animate-pulse" />
                     </div>
                     <p className="text-muted-foreground text-sm sm:text-base">
-                      Explore verified airdrop campaigns curated by our team. Find your next opportunity!
+                      Explore verified airdrop campaigns curated by our team.
+                      Find your next opportunity!
                     </p>
                   </div>
                 </div>
-                <Button 
-                  variant="default" 
+                <Button
+                  variant="default"
                   className="flex-shrink-0 group-hover:scale-105 transition-transform"
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate('/explorer');
+                    navigate("/explorer");
                   }}
                 >
                   Explore Now
@@ -212,7 +198,7 @@ function TaskGrid() {
           </Card>
         </>
       )}
-      
+
       {/* Task Edit Dialog */}
       <TaskDialog
         open={dialogOpen}
@@ -220,7 +206,7 @@ function TaskGrid() {
         onSave={handleSaveTask}
         editingTask={editingTask}
       />
-      
+
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent className="bg-card border-muted">
@@ -232,12 +218,12 @@ function TaskGrid() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+            <AlertDialogAction onClick={confirmDelete}>
+              Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
-
     </div>
   );
 }
@@ -250,7 +236,7 @@ const Index = () => {
   const { addTask, updateTask } = useTasks();
 
   const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
+    setTheme(theme === "dark" ? "light" : "dark");
   };
 
   const handleOpenAddDialog = () => {
@@ -267,31 +253,31 @@ const Index = () => {
   };
 
   return (
-    <>
+    <main id="main-content">
       <WelcomeBanner />
       <div className="container mx-auto px-4 pb-12">
         <TaskGrid />
-      
-      {/* Task Dialog for mobile floating button */}
-      <TaskDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        onSave={handleSaveTask}
-        editingTask={editingTask}
-      />
-      
-      {/* Floating Add Task Button */}
-      <Button
-        variant="default"
-        size="icon"
-        onClick={handleOpenAddDialog}
-        aria-label="Add new task"
-        className="fixed bottom-6 right-6 h-12 w-12 rounded-full shadow-lg bg-primary/90 hover:bg-primary backdrop-blur-sm border border-primary/20 z-40"
-      >
-        <Plus className="h-5 w-5" />
-      </Button>
+
+        {/* Task Dialog for mobile floating button */}
+        <TaskDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          onSave={handleSaveTask}
+          editingTask={editingTask}
+        />
+
+        {/* Floating Add Task Button */}
+        <Button
+          variant="default"
+          size="icon"
+          onClick={handleOpenAddDialog}
+          aria-label="Add new task"
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-primary/90 hover:bg-primary backdrop-blur-sm border border-primary/20 z-40 md:h-12 md:w-12"
+        >
+          <Plus className="h-6 w-6 md:h-5 md:w-5" />
+        </Button>
       </div>
-    </>
+    </main>
   );
 };
 

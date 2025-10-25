@@ -1,4 +1,4 @@
-import { StreakData } from './gamification';
+import { StreakData } from "./gamification";
 
 export interface UserProfile {
   uid: string;
@@ -12,11 +12,12 @@ export interface UserProfile {
   isAdmin?: boolean; // Admin role flag for accessing admin pages
   streakData?: StreakData; // User's login streak data
   lastStreakUpdate?: Date; // Last time streak was checked
+  hasCompletedOnboarding?: boolean; // Whether user has visited About page after first sign-up
   createdAt: Date;
   updatedAt: Date;
 }
 
-export type BadgeLevel = 'Beginner' | 'Intermediate' | 'Veteran' | 'Master';
+export type BadgeLevel = "Beginner" | "Intermediate" | "Veteran" | "Master";
 
 export interface UserStats {
   totalTasks: number;

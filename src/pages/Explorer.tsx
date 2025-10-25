@@ -1,24 +1,37 @@
-import { useState, useEffect } from 'react';
-import { collection, query, orderBy, getDocs, where, doc, updateDoc, increment } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { AirdropProject } from '@/types/airdrop';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { useNotifications } from '@/context/NotificationContext';
-import { toast } from 'sonner';
-import { 
-  Search, 
-  ExternalLink, 
-  Info, 
-  Rocket, 
+import { useState, useEffect } from "react";
+import {
+  collection,
+  query,
+  orderBy,
+  getDocs,
+  where,
+  doc,
+  updateDoc,
+  increment,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { AirdropProject } from "@/types/airdrop";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { useNotifications } from "@/context/NotificationContext";
+import { useTasks } from "@/context/TasksContext";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
+import {
+  Search,
+  ExternalLink,
+  Info,
+  Rocket,
   TrendingUp,
   Filter,
   Sparkles,
   Calendar,
-  Award
-} from 'lucide-react';
+  Award,
+  Plus,
+  CheckCircle2,
+} from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -26,15 +39,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export default function Explorer() {
   const [projects, setProjects] = useState<AirdropProject[]>([]);
-  const [filteredProjects, setFilteredProjects] = useState<AirdropProject[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [filteredProjects, setFilteredProjects] = useState<AirdropProject[]>(
+    []
+  );
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isLoading, setIsLoading] = useState(true);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<AirdropProject | null>(
+    null
+  );
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(
+    new Set()
+  );
+
   const { addNotification } = useNotifications();
+  const { addTask } = useTasks();
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchProjects();
@@ -47,29 +80,31 @@ export default function Explorer() {
   const fetchProjects = async () => {
     try {
       const projectsQuery = query(
-        collection(db, 'airdropProjects'),
-        orderBy('featured', 'desc'),
-        orderBy('createdAt', 'desc')
+        collection(db, "airdropProjects"),
+        orderBy("featured", "desc"),
+        orderBy("createdAt", "desc")
       );
-      
+
       const snapshot = await getDocs(projectsQuery);
-      const projectsData = snapshot.docs.map(doc => ({
+      const projectsData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
         createdAt: doc.data().createdAt?.toDate(),
         updatedAt: doc.data().updatedAt?.toDate(),
         endDate: doc.data().endDate?.toDate(),
       })) as AirdropProject[];
-      
+
       // Check for new projects
       checkForNewProjects(projectsData);
-      
+
       setProjects(projectsData);
     } catch (error: any) {
-      console.error('Error fetching projects:', error);
+      console.error("Error fetching projects:", error);
       // If permission error, it means Firestore rules need to be deployed
-      if (error?.message?.includes('permission')) {
-        console.error('⚠️ Firestore rules may not be deployed. Run: firebase deploy --only firestore:rules');
+      if (error?.message?.includes("permission")) {
+        console.error(
+          "⚠️ Firestore rules may not be deployed. Run: firebase deploy --only firestore:rules"
+        );
       }
     } finally {
       setIsLoading(false);
@@ -77,34 +112,51 @@ export default function Explorer() {
   };
 
   const checkForNewProjects = (projectsData: AirdropProject[]) => {
-    const lastVisit = localStorage.getItem('last_explorer_visit');
+    const lastVisit = localStorage.getItem("last_explorer_visit");
     const currentVisit = new Date().toISOString();
-    
+
     if (lastVisit && projectsData.length > 0) {
       const lastVisitDate = new Date(lastVisit);
-      const newProjects = projectsData.filter(project => 
-        project.createdAt && project.createdAt > lastVisitDate
+      const newProjects = projectsData.filter(
+        (project) => project.createdAt && project.createdAt > lastVisitDate
       );
-      
+
       if (newProjects.length > 0) {
         // Show toast notification
-        toast.success(`${newProjects.length} new airdrop${newProjects.length > 1 ? 's' : ''} available!`, {
-          description: newProjects[0].name + (newProjects.length > 1 ? ` and ${newProjects.length - 1} more` : ''),
-          duration: 5000,
-        });
-        
+        toast.success(
+          `${newProjects.length} new airdrop${
+            newProjects.length > 1 ? "s" : ""
+          } available!`,
+          {
+            description:
+              newProjects[0].name +
+              (newProjects.length > 1
+                ? ` and ${newProjects.length - 1} more`
+                : ""),
+            duration: 5000,
+          }
+        );
+
         // Add to notification center
         addNotification({
-          type: 'progress',
-          title: `🚀 New Airdrop${newProjects.length > 1 ? 's' : ''} Available!`,
-          message: `${newProjects.length} new opportunity${newProjects.length > 1 ? 'ies' : ''} added: ${newProjects.map(p => p.name).join(', ')}`,
-          icon: '🎁'
+          type: "progress",
+          title: `🚀 New Airdrop${
+            newProjects.length > 1 ? "s" : ""
+          } Available!`,
+          message: `${newProjects.length} new opportunity${
+            newProjects.length > 1 ? "ies" : ""
+          } added: ${newProjects
+            .map((p) => p.name)
+            .join(
+              ", "
+            )}. Check out the Explorer page to discover more details!`,
+          icon: "🎁",
         });
       }
     }
-    
+
     // Update last visit timestamp
-    localStorage.setItem('last_explorer_visit', currentVisit);
+    localStorage.setItem("last_explorer_visit", currentVisit);
   };
 
   const filterProjects = () => {
@@ -112,50 +164,108 @@ export default function Explorer() {
 
     // Search filter
     if (searchQuery) {
-      filtered = filtered.filter(project =>
-        project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        project.description.toLowerCase().includes(searchQuery.toLowerCase())
+      filtered = filtered.filter(
+        (project) =>
+          project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          project.description.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
     // Category filter
-    if (categoryFilter !== 'all') {
-      filtered = filtered.filter(project => project.category === categoryFilter);
+    if (categoryFilter !== "all") {
+      filtered = filtered.filter(
+        (project) => project.category === categoryFilter
+      );
     }
 
     // Status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(project => project.status === statusFilter);
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((project) => project.status === statusFilter);
     }
 
     setFilteredProjects(filtered);
   };
 
-  const trackClick = async (projectId: string, type: 'registration' | 'about') => {
+  const trackClick = async (
+    projectId: string,
+    type: "registration" | "about"
+  ) => {
     try {
-      await updateDoc(doc(db, 'airdropProjects', projectId), {
-        clicks: increment(1)
+      await updateDoc(doc(db, "airdropProjects", projectId), {
+        clicks: increment(1),
       });
     } catch (error) {
-      console.error('Error tracking click:', error);
+      console.error("Error tracking click:", error);
     }
+  };
+
+  const handleAddAsTask = (project: AirdropProject) => {
+    if (!user) {
+      toast.error("Please sign in to add tasks");
+      return;
+    }
+    setSelectedProject(project);
+    setShowAddDialog(true);
+  };
+
+  const confirmAddTask = () => {
+    if (!selectedProject) return;
+
+    const taskData = {
+      title: selectedProject.name,
+      url: selectedProject.registrationUrl,
+      thumbnailUrl: selectedProject.logoUrl || "",
+      intensity: "amber" as const,
+      timerType: "24h" as const,
+      customHours: 24,
+    };
+
+    addTask(taskData);
+
+    toast.success("Added to your tasks!", {
+      description: `${selectedProject.name} is now on your homepage`,
+      duration: 3000,
+    });
+
+    setShowAddDialog(false);
+    setSelectedProject(null);
+  };
+
+  const toggleDescription = (projectId: string) => {
+    setExpandedDescriptions((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(projectId)) {
+        newSet.delete(projectId);
+      } else {
+        newSet.add(projectId);
+      }
+      return newSet;
+    });
   };
 
   const getStatusColor = (status?: string) => {
     switch (status) {
-      case 'active': return 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20';
-      case 'upcoming': return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
-      case 'ended': return 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20';
-      default: return 'bg-primary/10 text-primary border-primary/20';
+      case "active":
+        return "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20";
+      case "upcoming":
+        return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20";
+      case "ended":
+        return "bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20";
+      default:
+        return "bg-primary/10 text-primary border-primary/20";
     }
   };
 
   const getCategoryIcon = (category?: string) => {
     switch (category?.toLowerCase()) {
-      case 'defi': return TrendingUp;
-      case 'gaming': return Award;
-      case 'infrastructure': return Rocket;
-      default: return Sparkles;
+      case "defi":
+        return TrendingUp;
+      case "gaming":
+        return Award;
+      case "infrastructure":
+        return Rocket;
+      default:
+        return Sparkles;
     }
   };
 
@@ -171,7 +281,10 @@ export default function Explorer() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5 py-8 px-4">
+    <main
+      id="main-content"
+      className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5 py-8 px-4"
+    >
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
@@ -179,16 +292,17 @@ export default function Explorer() {
             <Rocket className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium">Airdrop Explorer</span>
           </div>
-          
+
           <h1 className="text-4xl sm:text-5xl font-bold mb-4">
-            Discover{' '}
+            Discover{" "}
             <span className="text-primary dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-primary dark:to-accent">
               Legitimate Airdrops
             </span>
           </h1>
-          
+
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Explore verified airdrop campaigns and maximize your crypto earnings with trusted projects.
+            Explore verified airdrop campaigns and maximize your crypto earnings
+            with trusted projects.
           </p>
         </div>
 
@@ -211,7 +325,7 @@ export default function Explorer() {
               <Filter className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-medium">Filters:</span>
             </div>
-            
+
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="Category" />
@@ -219,6 +333,7 @@ export default function Explorer() {
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
                 <SelectItem value="DeFi">DeFi</SelectItem>
+                <SelectItem value="DePIN">DePIN</SelectItem>
                 <SelectItem value="Gaming">Gaming</SelectItem>
                 <SelectItem value="Infrastructure">Infrastructure</SelectItem>
                 <SelectItem value="NFT">NFT</SelectItem>
@@ -243,7 +358,11 @@ export default function Explorer() {
         {/* Results Count */}
         <div className="mb-6 text-center">
           <p className="text-sm text-muted-foreground">
-            Showing <span className="font-semibold text-foreground">{filteredProjects.length}</span> airdrop{filteredProjects.length !== 1 ? 's' : ''}
+            Showing{" "}
+            <span className="font-semibold text-foreground">
+              {filteredProjects.length}
+            </span>{" "}
+            airdrop{filteredProjects.length !== 1 ? "s" : ""}
           </p>
         </div>
 
@@ -253,42 +372,54 @@ export default function Explorer() {
             <Rocket className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">No airdrops found</h3>
             <p className="text-muted-foreground">
-              {searchQuery || categoryFilter !== 'all' || statusFilter !== 'all'
-                ? 'Try adjusting your filters or search query'
-                : 'Check back soon for new opportunities!'}
+              {searchQuery || categoryFilter !== "all" || statusFilter !== "all"
+                ? "Try adjusting your filters or search query"
+                : "Check back soon for new opportunities!"}
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProjects.map((project) => {
               const CategoryIcon = getCategoryIcon(project.category);
-              
+
               // Check if project is new (added in last 7 days)
-              const isNew = project.createdAt && 
-                (Date.now() - project.createdAt.getTime()) < 7 * 24 * 60 * 60 * 1000;
-              
+              const isNew =
+                project.createdAt &&
+                Date.now() - project.createdAt.getTime() <
+                  7 * 24 * 60 * 60 * 1000;
+
               return (
-                <Card 
-                  key={project.id} 
+                <Card
+                  key={project.id}
                   className="overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group"
                 >
                   {/* Project Image/Logo */}
                   <div className="relative h-48 bg-gradient-to-br from-primary/20 via-primary/10 to-accent/20 flex items-center justify-center overflow-hidden">
                     {project.logoUrl ? (
-                      <img 
-                        src={project.logoUrl} 
+                      <img
+                        src={project.logoUrl}
                         alt={project.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300"
                         onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                          e.currentTarget.style.display = "none";
+                          e.currentTarget.nextElementSibling?.classList.remove(
+                            "hidden"
+                          );
                         }}
                       />
                     ) : null}
-                    <div className={project.logoUrl ? 'hidden' : 'flex items-center justify-center w-full h-full'}>
+                    <div
+                      className={
+                        project.logoUrl
+                          ? "hidden"
+                          : "flex items-center justify-center w-full h-full"
+                      }
+                    >
                       <CategoryIcon className="h-20 w-20 text-primary/40" />
                     </div>
-                    
+
                     {/* NEW Badge - Top Right if not featured */}
                     {isNew && !project.featured && (
                       <div className="absolute top-3 right-3">
@@ -297,7 +428,7 @@ export default function Explorer() {
                         </Badge>
                       </div>
                     )}
-                    
+
                     {/* Featured Badge - Takes priority over NEW */}
                     {project.featured && (
                       <div className="absolute top-3 right-3 flex flex-col gap-2">
@@ -314,8 +445,10 @@ export default function Explorer() {
 
                     {/* Status Badge */}
                     <div className="absolute top-3 left-3">
-                      <Badge className={`border ${getStatusColor(project.status)}`}>
-                        {project.status?.toUpperCase() || 'ACTIVE'}
+                      <Badge
+                        className={`border ${getStatusColor(project.status)}`}
+                      >
+                        {project.status?.toUpperCase() || "ACTIVE"}
                       </Badge>
                     </div>
                   </div>
@@ -324,17 +457,54 @@ export default function Explorer() {
                   <div className="p-6 space-y-4">
                     {/* Header */}
                     <div>
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <h3 className="text-xl font-bold line-clamp-1">{project.name}</h3>
+                      <h3 className="text-xl font-bold mb-3">{project.name}</h3>
+
+                      {/* Category & Requirements Labels */}
+                      <div className="space-y-2 mb-3">
                         {project.category && (
-                          <Badge variant="secondary" className="flex-shrink-0 text-xs">
-                            {project.category}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-muted-foreground uppercase">
+                              Category:
+                            </span>
+                            <Badge variant="secondary" className="text-xs">
+                              {project.category}
+                            </Badge>
+                          </div>
+                        )}
+                        {project.requirements && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-muted-foreground uppercase">
+                              Requirement:
+                            </span>
+                            <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded">
+                              {project.requirements}
+                            </span>
+                          </div>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {project.description}
-                      </p>
+
+                      {/* Expandable Description */}
+                      <div>
+                        <p
+                          className={`text-sm text-muted-foreground ${
+                            expandedDescriptions.has(project.id)
+                              ? ""
+                              : "line-clamp-2"
+                          }`}
+                        >
+                          {project.description}
+                        </p>
+                        {project.description.length > 100 && (
+                          <button
+                            onClick={() => toggleDescription(project.id)}
+                            className="text-xs text-primary hover:underline mt-1"
+                          >
+                            {expandedDescriptions.has(project.id)
+                              ? "Show less"
+                              : "Read more"}
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     {/* Metadata */}
@@ -349,45 +519,53 @@ export default function Explorer() {
                         {project.endDate && (
                           <div className="flex items-center gap-1 text-muted-foreground">
                             <Calendar className="h-3 w-3" />
-                            <span>Ends {project.endDate.toLocaleDateString()}</span>
+                            <span>
+                              Ends {project.endDate.toLocaleDateString()}
+                            </span>
                           </div>
                         )}
                       </div>
                     )}
 
-                    {/* Requirements */}
-                    {project.requirements && (
-                      <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded-lg line-clamp-2">
-                        {project.requirements}
-                      </p>
-                    )}
-
                     {/* Action Buttons */}
-                    <div className="flex gap-2 pt-2">
-                      <Button
-                        className="flex-1"
-                        onClick={() => {
-                          trackClick(project.id, 'registration');
-                          window.open(project.registrationUrl, '_blank');
-                        }}
-                      >
-                        <Rocket className="h-4 w-4 mr-2" />
-                        Join Airdrop
-                      </Button>
-                      
-                      {project.aboutUrl && (
+                    <div className="flex flex-col gap-2 pt-2">
+                      {/* Main Actions Row */}
+                      <div className="flex gap-2">
                         <Button
-                          variant="outline"
-                          size="icon"
+                          className="flex-1"
                           onClick={() => {
-                            trackClick(project.id, 'about');
-                            window.open(project.aboutUrl, '_blank');
+                            trackClick(project.id, "registration");
+                            window.open(project.registrationUrl, "_blank");
                           }}
-                          title="Learn More"
                         >
-                          <Info className="h-4 w-4" />
+                          <Rocket className="h-4 w-4 mr-2" />
+                          Join Airdrop
                         </Button>
-                      )}
+
+                        {project.aboutUrl && (
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                              trackClick(project.id, "about");
+                              window.open(project.aboutUrl, "_blank");
+                            }}
+                            title="Learn More"
+                          >
+                            <Info className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Add as Task Button - Prominent Position */}
+                      <Button
+                        variant="outline"
+                        className="w-full border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all"
+                        onClick={() => handleAddAsTask(project)}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add to My Tasks
+                      </Button>
                     </div>
                   </div>
                 </Card>
@@ -402,11 +580,87 @@ export default function Explorer() {
             <Sparkles className="h-12 w-12 text-primary mx-auto mb-4" />
             <h3 className="text-2xl font-bold mb-2">Stay Updated</h3>
             <p className="text-muted-foreground mb-4">
-              New airdrops are added regularly. Check back often to discover fresh opportunities!
+              New airdrops are added regularly. Check back often to discover
+              fresh opportunities!
             </p>
           </Card>
         </div>
       </div>
-    </div>
+
+      {/* Add as Task Confirmation Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+              Add to Tasks?
+            </DialogTitle>
+            <DialogDescription>
+              This will add "{selectedProject?.name}" to your homepage tasks
+              with default settings.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedProject && (
+            <div className="space-y-4 py-4">
+              {/* Preview Card */}
+              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  {selectedProject.logoUrl ? (
+                    <img
+                      src={selectedProject.logoUrl}
+                      alt={selectedProject.name}
+                      className="w-12 h-12 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Rocket className="h-6 w-6 text-primary" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold truncate">
+                      {selectedProject.name}
+                    </h4>
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {selectedProject.description}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Default Settings Info */}
+                <div className="border-t pt-3 space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">
+                    Default Task Settings:
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                      <span>Moderate Priority</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      <span>24 hour timer</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    💡 You can customize these settings after adding the task.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmAddTask}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Task
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </main>
   );
 }

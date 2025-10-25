@@ -1,6 +1,6 @@
-import { useNavigate } from 'react-router-dom';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { useNavigate } from "react-router-dom";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   BarChart3,
   Rocket,
@@ -8,50 +8,62 @@ import {
   Settings,
   DollarSign,
   Users,
-  TrendingUp
-} from 'lucide-react';
+  TrendingUp,
+  ArrowLeft,
+} from "lucide-react";
 
 export default function AdminHub() {
   const navigate = useNavigate();
 
   const adminPages = [
     {
-      title: 'Analytics Dashboard',
-      description: 'View site statistics, user metrics, and revenue insights',
+      title: "Analytics Dashboard",
+      description: "View site statistics, user metrics, and revenue insights",
       icon: BarChart3,
-      path: '/admin/analytics',
-      color: 'from-blue-500 to-cyan-500',
-      features: ['User metrics', 'Revenue tracking', 'Growth analytics']
+      path: "/admin/analytics",
+      color: "from-blue-500 to-cyan-500",
+      features: ["User metrics", "Revenue tracking", "Growth analytics"],
     },
     {
-      title: 'Manage Airdrops',
-      description: 'Add, edit, or remove airdrop projects from Explorer',
+      title: "Manage Airdrops",
+      description: "Add, edit, or remove airdrop projects from Explorer",
       icon: Rocket,
-      path: '/admin/airdrops',
-      color: 'from-purple-500 to-pink-500',
-      features: ['Create projects', 'Track clicks', 'Update listings']
+      path: "/admin/airdrops",
+      color: "from-purple-500 to-pink-500",
+      features: ["Create projects", "Track clicks", "Update listings"],
     },
     {
-      title: 'Donation Confirmations',
-      description: 'Review and manage user donation submissions',
+      title: "Donation Confirmations",
+      description: "Review and manage user donation submissions",
       icon: Heart,
-      path: '/admin/donations',
-      color: 'from-red-500 to-orange-500',
-      features: ['View donations', 'Verify submissions', 'Send thanks']
+      path: "/admin/donations",
+      color: "from-red-500 to-orange-500",
+      features: ["View donations", "Verify submissions", "Send thanks"],
     },
     {
-      title: 'Monetization Guide',
-      description: 'Learn how to monetize your platform effectively',
+      title: "Monetization Guide",
+      description: "Learn how to monetize your platform effectively",
       icon: DollarSign,
-      path: '/admin/monetization',
-      color: 'from-green-500 to-emerald-500',
-      features: ['AdSense setup', 'Affiliate programs', 'Premium features']
+      path: "/admin/monetization",
+      color: "from-green-500 to-emerald-500",
+      features: ["AdSense setup", "Affiliate programs", "Premium features"],
     },
   ];
 
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto">
+        {/* Back Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate("/")}
+          className="mb-4"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Home
+        </Button>
+
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
@@ -109,7 +121,9 @@ export default function AdminHub() {
                 onClick={() => navigate(page.path)}
               >
                 <div className="flex items-start gap-4">
-                  <div className={`p-4 rounded-xl bg-gradient-to-br ${page.color} group-hover:scale-110 transition-transform duration-300`}>
+                  <div
+                    className={`p-4 rounded-xl bg-gradient-to-br ${page.color} group-hover:scale-110 transition-transform duration-300`}
+                  >
                     <Icon className="h-8 w-8 text-white" />
                   </div>
                   <div className="flex-1">
@@ -131,7 +145,7 @@ export default function AdminHub() {
                     </div>
                   </div>
                 </div>
-                <Button 
+                <Button
                   className="w-full mt-4 group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
                   variant="outline"
                 >
@@ -149,7 +163,7 @@ export default function AdminHub() {
             <Button
               variant="outline"
               className="justify-start"
-              onClick={() => navigate('/admin/analytics')}
+              onClick={() => navigate("/admin/analytics")}
             >
               <BarChart3 className="h-4 w-4 mr-2" />
               Analytics
@@ -157,7 +171,7 @@ export default function AdminHub() {
             <Button
               variant="outline"
               className="justify-start"
-              onClick={() => navigate('/admin/airdrops')}
+              onClick={() => navigate("/admin/airdrops")}
             >
               <Rocket className="h-4 w-4 mr-2" />
               Airdrops
@@ -165,7 +179,7 @@ export default function AdminHub() {
             <Button
               variant="outline"
               className="justify-start"
-              onClick={() => navigate('/admin/donations')}
+              onClick={() => navigate("/admin/donations")}
             >
               <Heart className="h-4 w-4 mr-2" />
               Donations
@@ -173,7 +187,7 @@ export default function AdminHub() {
             <Button
               variant="outline"
               className="justify-start"
-              onClick={() => navigate('/admin/monetization')}
+              onClick={() => navigate("/admin/monetization")}
             >
               <DollarSign className="h-4 w-4 mr-2" />
               Monetization

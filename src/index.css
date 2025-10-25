@@ -1,9 +1,20 @@
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Better focus styles for accessibility */
+*:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+  border-radius: 2px;
+}
 
 @layer base {
   :root {
@@ -76,38 +87,45 @@
 
   body {
     @apply bg-background text-foreground font-inter;
-    background-image: radial-gradient(circle at 50% 0%, rgba(155, 135, 245, 0.15), transparent 50%);
+    background-image: radial-gradient(
+      circle at 50% 0%,
+      rgba(155, 135, 245, 0.15),
+      transparent 50%
+    );
     background-attachment: fixed;
   }
-  
-  h1, h2, h3, h4 {
+
+  h1,
+  h2,
+  h3,
+  h4 {
     @apply font-space-grotesk font-medium;
   }
-  
+
   .card-hover {
     @apply transition-all duration-200 hover:translate-y-[-4px] hover:shadow-lg hover:shadow-primary/20;
   }
-  
+
   .timer-progress {
     @apply h-1.5 rounded-full bg-gradient-to-r from-crypto-purple to-accent transition-all duration-300;
   }
-  
+
   .glow {
     @apply shadow-[0_0_15px_rgba(155,135,245,0.5)];
   }
-  
+
   .intensity-badge {
     @apply absolute top-2 right-2 w-3 h-3 rounded-full;
   }
-  
+
   .intensity-red {
     @apply bg-crypto-red;
   }
-  
+
   .intensity-amber {
     @apply bg-crypto-amber;
   }
-  
+
   .intensity-green {
     @apply bg-crypto-green;
   }
@@ -118,32 +136,32 @@
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 1rem);
   }
-  
+
   .pt-safe {
     padding-top: env(safe-area-inset-top, 0);
   }
-  
+
   .pl-safe {
     padding-left: env(safe-area-inset-left, 0);
   }
-  
+
   .pr-safe {
     padding-right: env(safe-area-inset-right, 0);
   }
-  
+
   /* 3D perspective utilities for animations */
   .perspective-1000 {
     perspective: 1000px;
   }
-  
+
   .perspective-2000 {
     perspective: 2000px;
   }
-  
+
   .preserve-3d {
     transform-style: preserve-3d;
   }
-  
+
   .backface-hidden {
     backface-visibility: hidden;
   }

@@ -1,14 +1,25 @@
-import { useState, useEffect } from 'react';
-import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/context/AuthContext';
-import { AirdropProject } from '@/types/airdrop';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
+import { useState, useEffect } from "react";
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  getDocs,
+  query,
+  orderBy,
+  serverTimestamp,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { AirdropProject } from "@/types/airdrop";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -24,29 +35,40 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, ExternalLink, Save, X } from 'lucide-react';
-import { toast } from 'sonner';
+import {
+  Plus,
+  Edit,
+  Trash2,
+  ExternalLink,
+  Save,
+  X,
+  ArrowLeft,
+} from "lucide-react";
+import { toast } from "sonner";
 
 export default function AdminAirdrops() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<AirdropProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingProject, setEditingProject] = useState<AirdropProject | null>(null);
-  
+  const [editingProject, setEditingProject] = useState<AirdropProject | null>(
+    null
+  );
+
   // Form state
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    logoUrl: '',
-    registrationUrl: '',
-    aboutUrl: '',
-    category: 'DeFi',
-    status: 'active' as 'active' | 'upcoming' | 'ended',
+    name: "",
+    description: "",
+    logoUrl: "",
+    registrationUrl: "",
+    aboutUrl: "",
+    category: "DeFi",
+    status: "active" as "active" | "upcoming" | "ended",
     featured: false,
-    requirements: '',
-    reward: '',
-    endDate: '',
+    requirements: "",
+    reward: "",
+    endDate: "",
   });
 
   useEffect(() => {
@@ -56,11 +78,11 @@ export default function AdminAirdrops() {
   const fetchProjects = async () => {
     try {
       const projectsQuery = query(
-        collection(db, 'airdropProjects'),
-        orderBy('createdAt', 'desc')
+        collection(db, "airdropProjects"),
+        orderBy("createdAt", "desc")
       );
       const snapshot = await getDocs(projectsQuery);
-      const projectsData = snapshot.docs.map(doc => ({
+      const projectsData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
         createdAt: doc.data().createdAt?.toDate(),
@@ -69,8 +91,8 @@ export default function AdminAirdrops() {
       })) as AirdropProject[];
       setProjects(projectsData);
     } catch (error) {
-      console.error('Error fetching projects:', error);
-      toast.error('Failed to load projects');
+      console.error("Error fetching projects:", error);
+      toast.error("Failed to load projects");
     } finally {
       setIsLoading(false);
     }
@@ -82,30 +104,32 @@ export default function AdminAirdrops() {
       setFormData({
         name: project.name,
         description: project.description,
-        logoUrl: project.logoUrl || '',
+        logoUrl: project.logoUrl || "",
         registrationUrl: project.registrationUrl,
-        aboutUrl: project.aboutUrl || '',
-        category: project.category || 'DeFi',
-        status: project.status || 'active',
+        aboutUrl: project.aboutUrl || "",
+        category: project.category || "DeFi",
+        status: project.status || "active",
         featured: project.featured || false,
-        requirements: project.requirements || '',
-        reward: project.reward || '',
-        endDate: project.endDate ? project.endDate.toISOString().split('T')[0] : '',
+        requirements: project.requirements || "",
+        reward: project.reward || "",
+        endDate: project.endDate
+          ? project.endDate.toISOString().split("T")[0]
+          : "",
       });
     } else {
       setEditingProject(null);
       setFormData({
-        name: '',
-        description: '',
-        logoUrl: '',
-        registrationUrl: '',
-        aboutUrl: '',
-        category: 'DeFi',
-        status: 'active',
+        name: "",
+        description: "",
+        logoUrl: "",
+        registrationUrl: "",
+        aboutUrl: "",
+        category: "DeFi",
+        status: "active",
         featured: false,
-        requirements: '',
-        reward: '',
-        endDate: '',
+        requirements: "",
+        reward: "",
+        endDate: "",
       });
     }
     setDialogOpen(true);
@@ -118,7 +142,7 @@ export default function AdminAirdrops() {
 
   const handleSave = async () => {
     if (!formData.name || !formData.description || !formData.registrationUrl) {
-      toast.error('Please fill in all required fields');
+      toast.error("Please fill in all required fields");
       return;
     }
 
@@ -136,53 +160,61 @@ export default function AdminAirdrops() {
         reward: formData.reward || null,
         endDate: formData.endDate ? new Date(formData.endDate) : null,
         updatedAt: serverTimestamp(),
-        ...(editingProject ? {} : {
-          createdAt: serverTimestamp(),
-          createdBy: user?.uid,
-          views: 0,
-          clicks: 0,
-        }),
+        ...(editingProject
+          ? {}
+          : {
+              createdAt: serverTimestamp(),
+              createdBy: user?.uid,
+              views: 0,
+              clicks: 0,
+            }),
       };
 
       if (editingProject) {
-        await updateDoc(doc(db, 'airdropProjects', editingProject.id), projectData);
-        toast.success('Project updated successfully!');
+        await updateDoc(
+          doc(db, "airdropProjects", editingProject.id),
+          projectData
+        );
+        toast.success("Project updated successfully!");
       } else {
         // Create new project
-        const docRef = await addDoc(collection(db, 'airdropProjects'), projectData);
-        
+        const docRef = await addDoc(
+          collection(db, "airdropProjects"),
+          projectData
+        );
+
         // Create global notification for new airdrop
-        await addDoc(collection(db, 'globalNotifications'), {
-          type: 'new_airdrop',
+        await addDoc(collection(db, "globalNotifications"), {
+          type: "new_airdrop",
           projectId: docRef.id,
           projectName: formData.name,
           category: formData.category,
           featured: formData.featured,
           createdAt: serverTimestamp(),
-          read: false
+          read: false,
         });
-        
-        toast.success('🎉 Project created and users will be notified!');
+
+        toast.success("🎉 Project created and users will be notified!");
       }
 
       handleCloseDialog();
       fetchProjects();
     } catch (error) {
-      console.error('Error saving project:', error);
-      toast.error('Failed to save project');
+      console.error("Error saving project:", error);
+      toast.error("Failed to save project");
     }
   };
 
   const handleDelete = async (projectId: string) => {
-    if (!confirm('Are you sure you want to delete this project?')) return;
+    if (!confirm("Are you sure you want to delete this project?")) return;
 
     try {
-      await deleteDoc(doc(db, 'airdropProjects', projectId));
-      toast.success('Project deleted successfully!');
+      await deleteDoc(doc(db, "airdropProjects", projectId));
+      toast.success("Project deleted successfully!");
       fetchProjects();
     } catch (error) {
-      console.error('Error deleting project:', error);
-      toast.error('Failed to delete project');
+      console.error("Error deleting project:", error);
+      toast.error("Failed to delete project");
     }
   };
 
@@ -200,6 +232,17 @@ export default function AdminAirdrops() {
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto">
+        {/* Back Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate("/admin")}
+          className="mb-4"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Admin
+        </Button>
+
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -222,8 +265,8 @@ export default function AdminAirdrops() {
                 {/* Logo */}
                 <div className="w-20 h-20 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
                   {project.logoUrl ? (
-                    <img 
-                      src={project.logoUrl} 
+                    <img
+                      src={project.logoUrl}
                       alt={project.name}
                       className="w-full h-full object-cover"
                     />
@@ -237,14 +280,16 @@ export default function AdminAirdrops() {
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <h3 className="font-bold text-lg truncate">{project.name}</h3>
+                    <h3 className="font-bold text-lg truncate">
+                      {project.name}
+                    </h3>
                     {project.featured && (
                       <span className="text-xs bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 px-2 py-1 rounded-full flex-shrink-0">
                         ⭐ Featured
                       </span>
                     )}
                   </div>
-                  
+
                   <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
                     {project.description}
                   </p>
@@ -253,11 +298,15 @@ export default function AdminAirdrops() {
                     <span className="px-2 py-1 bg-primary/10 text-primary rounded-full">
                       {project.category}
                     </span>
-                    <span className={`px-2 py-1 rounded-full ${
-                      project.status === 'active' ? 'bg-green-500/10 text-green-600' :
-                      project.status === 'upcoming' ? 'bg-blue-500/10 text-blue-600' :
-                      'bg-gray-500/10 text-gray-600'
-                    }`}>
+                    <span
+                      className={`px-2 py-1 rounded-full ${
+                        project.status === "active"
+                          ? "bg-green-500/10 text-green-600"
+                          : project.status === "upcoming"
+                          ? "bg-blue-500/10 text-blue-600"
+                          : "bg-gray-500/10 text-gray-600"
+                      }`}
+                    >
                       {project.status}
                     </span>
                     {project.clicks !== undefined && (
@@ -280,7 +329,9 @@ export default function AdminAirdrops() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => window.open(project.registrationUrl, '_blank')}
+                      onClick={() =>
+                        window.open(project.registrationUrl, "_blank")
+                      }
                     >
                       <ExternalLink className="h-3 w-3 mr-1" />
                       View
@@ -301,7 +352,9 @@ export default function AdminAirdrops() {
 
         {projects.length === 0 && (
           <div className="text-center py-16">
-            <p className="text-muted-foreground mb-4">No projects yet. Add your first airdrop campaign!</p>
+            <p className="text-muted-foreground mb-4">
+              No projects yet. Add your first airdrop campaign!
+            </p>
             <Button onClick={() => handleOpenDialog()}>
               <Plus className="h-4 w-4 mr-2" />
               Add First Project
@@ -315,10 +368,12 @@ export default function AdminAirdrops() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingProject ? 'Edit Project' : 'Add New Project'}
+              {editingProject ? "Edit Project" : "Add New Project"}
             </DialogTitle>
             <DialogDescription>
-              {editingProject ? 'Update project details' : 'Add a new airdrop campaign for users to discover'}
+              {editingProject
+                ? "Update project details"
+                : "Add a new airdrop campaign for users to discover"}
             </DialogDescription>
           </DialogHeader>
 
@@ -329,7 +384,9 @@ export default function AdminAirdrops() {
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
                 placeholder="e.g., Grass Airdrop"
               />
             </div>
@@ -340,7 +397,9 @@ export default function AdminAirdrops() {
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 placeholder="Brief description of the airdrop project..."
                 rows={3}
               />
@@ -352,7 +411,9 @@ export default function AdminAirdrops() {
               <Input
                 id="logoUrl"
                 value={formData.logoUrl}
-                onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, logoUrl: e.target.value })
+                }
                 placeholder="https://example.com/logo.png"
               />
               <p className="text-xs text-muted-foreground mt-1">
@@ -362,11 +423,15 @@ export default function AdminAirdrops() {
 
             {/* Registration URL (with referral) */}
             <div>
-              <Label htmlFor="registrationUrl">Registration URL (With Your Referral Code) *</Label>
+              <Label htmlFor="registrationUrl">
+                Registration URL (With Your Referral Code) *
+              </Label>
               <Input
                 id="registrationUrl"
                 value={formData.registrationUrl}
-                onChange={(e) => setFormData({ ...formData, registrationUrl: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, registrationUrl: e.target.value })
+                }
                 placeholder="https://example.com/register?ref=yourcode"
               />
               <p className="text-xs text-muted-foreground mt-1">
@@ -380,7 +445,9 @@ export default function AdminAirdrops() {
               <Input
                 id="aboutUrl"
                 value={formData.aboutUrl}
-                onChange={(e) => setFormData({ ...formData, aboutUrl: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, aboutUrl: e.target.value })
+                }
                 placeholder="https://example.com/about"
               />
             </div>
@@ -389,14 +456,22 @@ export default function AdminAirdrops() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="category">Category</Label>
-                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, category: value })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="DeFi">DeFi</SelectItem>
+                    <SelectItem value="DePIN">DePIN</SelectItem>
                     <SelectItem value="Gaming">Gaming</SelectItem>
-                    <SelectItem value="Infrastructure">Infrastructure</SelectItem>
+                    <SelectItem value="Infrastructure">
+                      Infrastructure
+                    </SelectItem>
                     <SelectItem value="NFT">NFT</SelectItem>
                     <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
@@ -405,7 +480,12 @@ export default function AdminAirdrops() {
 
               <div>
                 <Label htmlFor="status">Status</Label>
-                <Select value={formData.status} onValueChange={(value: any) => setFormData({ ...formData, status: value })}>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value: any) =>
+                    setFormData({ ...formData, status: value })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -425,7 +505,9 @@ export default function AdminAirdrops() {
                 <Input
                   id="requirements"
                   value={formData.requirements}
-                  onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, requirements: e.target.value })
+                  }
                   placeholder="e.g., Twitter follow"
                 />
               </div>
@@ -435,7 +517,9 @@ export default function AdminAirdrops() {
                 <Input
                   id="reward"
                   value={formData.reward}
-                  onChange={(e) => setFormData({ ...formData, reward: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, reward: e.target.value })
+                  }
                   placeholder="e.g., 100 tokens"
                 />
               </div>
@@ -448,20 +532,28 @@ export default function AdminAirdrops() {
                 id="endDate"
                 type="date"
                 value={formData.endDate}
-                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, endDate: e.target.value })
+                }
               />
             </div>
 
             {/* Featured Toggle */}
             <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
               <div>
-                <Label htmlFor="featured" className="cursor-pointer">Featured Project</Label>
-                <p className="text-xs text-muted-foreground">Show at the top of the list</p>
+                <Label htmlFor="featured" className="cursor-pointer">
+                  Featured Project
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Show at the top of the list
+                </p>
               </div>
               <Switch
                 id="featured"
                 checked={formData.featured}
-                onCheckedChange={(checked) => setFormData({ ...formData, featured: checked })}
+                onCheckedChange={(checked) =>
+                  setFormData({ ...formData, featured: checked })
+                }
               />
             </div>
           </div>
@@ -473,7 +565,7 @@ export default function AdminAirdrops() {
             </Button>
             <Button onClick={handleSave}>
               <Save className="h-4 w-4 mr-2" />
-              {editingProject ? 'Update' : 'Create'}
+              {editingProject ? "Update" : "Create"}
             </Button>
           </DialogFooter>
         </DialogContent>

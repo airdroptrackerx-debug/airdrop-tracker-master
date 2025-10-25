@@ -43,14 +43,8 @@ export function useActivityTracking() {
 
     // Update before page unload
     const handleBeforeUnload = () => {
-      // Use sendBeacon for reliable last update
-      const data = JSON.stringify({
-        userId: user.uid,
-        lastSeen: new Date().toISOString(),
-        page: window.location.pathname
-      });
-      navigator.sendBeacon('/api/activity', data); // Fallback
-      updateActivity(); // Try normal update too
+      // Final activity update before user leaves
+      updateActivity();
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
 

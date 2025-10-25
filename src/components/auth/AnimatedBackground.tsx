@@ -3,12 +3,17 @@ import { gsap } from 'gsap';
 
 export function AnimatedBackground() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const tweensRef = useRef<gsap.core.Tween[]>([]);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
+    let isMounted = true;
+
     // Create floating parachutes
     const createParachute = (delay: number) => {
+      if (!isMounted || !containerRef.current) return;
+      
       const parachute = document.createElement('div');
       parachute.className = 'absolute pointer-events-none';
       parachute.innerHTML = `
@@ -30,7 +35,7 @@ export function AnimatedBackground() {
       const duration = 15 + Math.random() * 10;
       const horizontalMovement = (Math.random() - 0.5) * 200;
 
-      gsap.to(parachute, {
+      const tween1 = gsap.to(parachute, {
         y: window.innerHeight + 100,
         x: horizontalMovement,
         rotation: Math.random() * 20 - 10,
@@ -38,23 +43,29 @@ export function AnimatedBackground() {
         ease: 'none',
         delay: delay,
         onComplete: () => {
-          parachute.remove();
-          createParachute(0);
+          if (isMounted && parachute.parentNode) {
+            parachute.remove();
+            createParachute(0);
+          }
         }
       });
 
       // Swaying animation
-      gsap.to(parachute, {
+      const tween2 = gsap.to(parachute, {
         x: `+=${Math.random() * 40 - 20}`,
         duration: 3 + Math.random() * 2,
         repeat: -1,
         yoyo: true,
         ease: 'sine.inOut'
       });
+
+      tweensRef.current.push(tween1, tween2);
     };
 
     // Create floating coins
     const createCoin = (delay: number) => {
+      if (!isMounted || !containerRef.current) return;
+      
       const coin = document.createElement('div');
       coin.className = 'absolute pointer-events-none';
       coin.innerHTML = `
@@ -77,7 +88,7 @@ export function AnimatedBackground() {
 
       const duration = 12 + Math.random() * 8;
 
-      gsap.to(coin, {
+      const tween1 = gsap.to(coin, {
         y: -window.innerHeight - 100,
         x: (Math.random() - 0.5) * 150,
         rotation: 360 + Math.random() * 360,
@@ -85,23 +96,29 @@ export function AnimatedBackground() {
         ease: 'none',
         delay: delay,
         onComplete: () => {
-          coin.remove();
-          createCoin(0);
+          if (isMounted && coin.parentNode) {
+            coin.remove();
+            createCoin(0);
+          }
         }
       });
 
       // Wobble animation
-      gsap.to(coin, {
+      const tween2 = gsap.to(coin, {
         scale: 1.2,
         duration: 1.5 + Math.random(),
         repeat: -1,
         yoyo: true,
         ease: 'sine.inOut'
       });
+
+      tweensRef.current.push(tween1, tween2);
     };
 
     // Create sparkles
     const createSparkle = () => {
+      if (!isMounted || !containerRef.current) return;
+      
       const sparkle = document.createElement('div');
       sparkle.className = 'absolute pointer-events-none';
       sparkle.innerHTML = `
@@ -115,7 +132,7 @@ export function AnimatedBackground() {
       sparkle.style.top = `${Math.random() * 100}%`;
       containerRef.current?.appendChild(sparkle);
 
-      gsap.fromTo(sparkle, 
+      const tween = gsap.fromTo(sparkle, 
         { scale: 0, opacity: 0, rotation: 0 },
         { 
           scale: 1, 
@@ -124,16 +141,22 @@ export function AnimatedBackground() {
           duration: 0.6,
           ease: 'back.out(1.7)',
           onComplete: () => {
-            gsap.to(sparkle, {
-              scale: 0,
-              opacity: 0,
-              duration: 0.4,
-              delay: 0.3,
-              onComplete: () => sparkle.remove()
-            });
+            if (isMounted && sparkle.parentNode) {
+              gsap.to(sparkle, {
+                scale: 0,
+                opacity: 0,
+                duration: 0.4,
+                delay: 0.3,
+                onComplete: () => {
+                  if (sparkle.parentNode) sparkle.remove();
+                }
+              });
+            }
           }
         }
       );
+
+      tweensRef.current.push(tween);
     };
 
     // Initialize animations
@@ -150,13 +173,24 @@ export function AnimatedBackground() {
 
     // Sparkle at random intervals
     const sparkleInterval = setInterval(() => {
-      if (Math.random() > 0.7) {
+      if (isMounted && Math.random() > 0.7) {
         createSparkle();
       }
     }, 800);
 
     return () => {
+      isMounted = false;
       clearInterval(sparkleInterval);
+      
+      // Kill all GSAP animations
+      tweensRef.current.forEach(tween => {
+        if (tween && tween.kill) {
+          tween.kill();
+        }
+      });
+      tweensRef.current = [];
+      
+      // Clear container
       if (containerRef.current) {
         containerRef.current.innerHTML = '';
       }

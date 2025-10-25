@@ -13,9 +13,11 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
     
-    // Users collection - users can only read/write their own data
+    // Users collection - users can read/write their own data, admins can read all
     match /users/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read: if isOwner(userId) || 
+                     (isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
+      allow write: if isOwner(userId);
       
       // User's tasks subcollection
       match /tasks/{taskId} {
@@ -23,10 +25,12 @@ service cloud.firestore {
       }
     }
     
-    // Tasks collection - users can only access their own tasks
+    // Tasks collection - users can access their own tasks, admins can read all
     match /tasks/{taskId} {
-      allow read, write: if isAuthenticated() && 
-                           request.auth.uid == resource.data.userId;
+      allow read: if (isAuthenticated() && request.auth.uid == resource.data.userId) ||
+                     (isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
+      allow write: if isAuthenticated() && 
+                      request.auth.uid == resource.data.userId;
       allow create: if isAuthenticated() && 
                       request.auth.uid == request.resource.data.userId;
     }
@@ -56,9 +60,9 @@ service cloud.firestore {
                      get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
     
-    // User activity tracking - allow all authenticated users to read (for live user count)
+    // User activity tracking - allow public read for live count (social proof on signup)
     match /userActivity/{userId} {
-      allow read: if isAuthenticated(); // All logged-in users can read activity (for counting)
+      allow read: if true; // Public read for counting active users (social proof)
       allow write: if isAuthenticated() && 
                      request.auth.uid == userId &&
                      // Validate data structure

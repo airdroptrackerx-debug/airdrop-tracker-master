@@ -1,8 +1,17 @@
-import { useState, useEffect } from 'react';
-import { collection, query, orderBy, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { Heart, Calendar, User, Mail, MessageSquare } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect } from "react";
+import { collection, query, orderBy, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { useNavigate } from "react-router-dom";
+import {
+  Heart,
+  Calendar,
+  User,
+  Mail,
+  MessageSquare,
+  RefreshCw,
+  ArrowLeft,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface DonationConfirmation {
   id: string;
@@ -14,39 +23,48 @@ interface DonationConfirmation {
 }
 
 export default function DonationConfirmations() {
-  const [confirmations, setConfirmations] = useState<DonationConfirmation[]>([]);
+  const navigate = useNavigate();
+  const [confirmations, setConfirmations] = useState<DonationConfirmation[]>(
+    []
+  );
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     fetchConfirmations();
   }, []);
 
-  const fetchConfirmations = async () => {
+  const fetchConfirmations = async (isManualRefresh = false) => {
     try {
+      if (isManualRefresh) {
+        setIsRefreshing(true);
+      }
+
       const q = query(
-        collection(db, 'donationConfirmations'),
-        orderBy('createdAt', 'desc')
+        collection(db, "donationConfirmations"),
+        orderBy("createdAt", "desc")
       );
       const querySnapshot = await getDocs(q);
-      const data = querySnapshot.docs.map(doc => ({
+      const data = querySnapshot.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
       })) as DonationConfirmation[];
       setConfirmations(data);
     } catch (error) {
-      console.error('Error fetching confirmations:', error);
+      console.error("Error fetching confirmations:", error);
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -64,6 +82,17 @@ export default function DonationConfirmations() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/5 py-12 px-4">
       <div className="max-w-4xl mx-auto">
+        {/* Back Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate("/admin")}
+          className="mb-4"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Admin
+        </Button>
+
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full backdrop-blur-sm border-2 border-border/50 mb-4 shadow-lg relative">
@@ -72,14 +101,24 @@ export default function DonationConfirmations() {
           </div>
           <h1 className="text-4xl font-bold mb-2">Donation Confirmations</h1>
           <p className="text-muted-foreground">
-            Total confirmations: <span className="font-bold text-primary">{confirmations.length}</span>
+            Total confirmations:{" "}
+            <span className="font-bold text-primary">
+              {confirmations.length}
+            </span>
           </p>
         </div>
 
         {/* Refresh Button */}
         <div className="flex justify-end mb-4">
-          <Button onClick={fetchConfirmations} variant="outline">
-            Refresh
+          <Button
+            onClick={() => fetchConfirmations(true)}
+            variant="outline"
+            disabled={isRefreshing}
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`}
+            />
+            {isRefreshing ? "Refreshing..." : "Refresh"}
           </Button>
         </div>
 
@@ -88,7 +127,9 @@ export default function DonationConfirmations() {
           {confirmations.length === 0 ? (
             <div className="bg-card border rounded-xl p-12 text-center">
               <Heart className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-xl font-semibold mb-2">No confirmations yet</h3>
+              <h3 className="text-xl font-semibold mb-2">
+                No confirmations yet
+              </h3>
               <p className="text-muted-foreground">
                 Donation confirmations will appear here when users submit them.
               </p>
@@ -111,7 +152,9 @@ export default function DonationConfirmations() {
                     {/* Donor Name */}
                     <div className="flex items-center gap-2 mb-2">
                       <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-semibold text-lg">{confirmation.donorName}</span>
+                      <span className="font-semibold text-lg">
+                        {confirmation.donorName}
+                      </span>
                     </div>
 
                     {/* Email */}
@@ -125,7 +168,9 @@ export default function DonationConfirmations() {
                       <div className="mt-3 p-3 bg-muted/50 rounded-lg">
                         <div className="flex items-start gap-2">
                           <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                          <p className="text-sm flex-1">{confirmation.message}</p>
+                          <p className="text-sm flex-1">
+                            {confirmation.message}
+                          </p>
                         </div>
                       </div>
                     )}

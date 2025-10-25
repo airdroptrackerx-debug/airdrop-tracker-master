@@ -31,3 +31,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Chrome Extension (removed from project)
+tracker-extension-main/
+
+# Firebase Functions (for future use when upgrading to Blaze plan)
+functions/
+functions-premium/
